@@ -1,9 +1,13 @@
-import { Elysia } from 'elysia'
+import { Elysia } from 'elysia';
+import { cors } from '@elysiajs/cors';
+import { ENV } from './config/env';
+import { loggerMiddleware } from './middlewares/logger';
+import { registerRoutes } from './routes/index';
 
 const app = new Elysia()
-	.get('/', () => 'Hello Elysia')
-	.listen(8000)
+  .use(cors({ origin: ENV.FRONTEND_URL }))
+  .use(loggerMiddleware)
+  .use(registerRoutes)
+  .listen(ENV.PORT);
 
-console.log(
-	`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-)
+console.log(`🚀 Server running at http://${app.server?.hostname}:${app.server?.port}`);
