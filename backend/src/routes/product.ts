@@ -3,6 +3,7 @@ import { Elysia, t } from 'elysia';
 import { moss } from '../moss/client.ts';
 import { ENV } from '../config/env.ts';
 import { PDFParse } from 'pdf-parse';
+import { db } from '../config/db.ts';
 
 export const productRoutes = new Elysia()
   .get('/products', async () => {
@@ -16,6 +17,15 @@ export const productRoutes = new Elysia()
     return [
       { id: "xiaomi-scooter-4-pro", name: "Xiaomi Mi Electric Scooter 4 Pro", category: "Electric Scooters" }
     ];
+  })
+  .get('/api/manuals', async () => {
+    try {
+      const res = await db.execute("SELECT id, name, productId, status, date FROM manuals ORDER BY id DESC;");
+      return res.rows;
+    } catch (err: any) {
+      console.error("Failed to fetch manuals:", err.message || err);
+      return [];
+    }
   })
   .post('/api/upload-manual', async ({ body, set }) => {
     const { productId, file } = body;
@@ -51,7 +61,20 @@ export const productRoutes = new Elysia()
 
       console.log(`Indexing ${docs.length} extracted pages in MOSS for product ${productId}...`);
       await moss.createIndex(productId, docs);
-      console.log(`Successfully indexed ${file.name}`);
+
+      // Save metadata to database
+      const dateStr = `Uploaded ${new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}`;
+
+      await db.execute(
+        "INSERT INTO manuals (name, productId, status, date) VALUES (?, ?, ?, ?);",
+        [file.name, productId, "Processed", dateStr]
+      );
+
+      console.log(`Successfully indexed and persisted ${file.name}`);
       return { success: true, message: `Successfully indexed ${file.name}` };
     } catch (err: any) {
       console.error(`Failed to index file ${file.name}:`, err);

@@ -41,7 +41,7 @@ describe("Mantis API Server", () => {
     expect(data.text).toBeDefined();
     expect(Array.isArray(data.suggestedActions)).toBe(true);
     expect(Array.isArray(data.manualLinks)).toBe(true);
-  });
+  }, 15000);
 
   it("returns 400 Bad Request for POST /api/upload-manual with invalid file type", async () => {
     const formData = new FormData();

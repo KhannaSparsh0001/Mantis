@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 
 interface SidebarItem {
@@ -21,11 +21,25 @@ export default function DashboardPage() {
   const [productId, setProductId] = useState("xiaomi-scooter-4-pro");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [manualList, setManualList] = useState<UploadedManual[]>([
-    { name: "Ninebot MAX G2 Manual.pdf", date: "Uploaded May 15, 2024", status: "Processed" },
-    { name: "Sony WH-1000XM5 Guide.pdf", date: "Uploaded May 14, 2024", status: "Processed" },
-    { name: "Dyson V15 Manual.pdf", date: "Uploaded May 13, 2024", status: "Processed" },
-  ]);
+  const [manualList, setManualList] = useState<UploadedManual[]>([]);
+
+  const fetchManuals = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/api/manuals");
+      if (response.ok) {
+        const data = await response.json();
+        setManualList(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch manuals:", err);
+    }
+  };
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      fetchManuals();
+    });
+  }, []);
 
   const sidebarItems: SidebarItem[] = [
     {
@@ -106,19 +120,8 @@ export default function DashboardPage() {
 
       setUploadStatus(`✅ Successfully uploaded and indexed in MOSS!`);
       
-      // Add newly uploaded manual to UI listing
-      setManualList((prev) => [
-        {
-          name: selectedFile.name,
-          date: `Uploaded ${new Date().toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}`,
-          status: "Processed",
-        },
-        ...prev,
-      ]);
+      // Refresh the manual list from the database
+      await fetchManuals();
     } catch (err) {
       console.error("Upload error:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
