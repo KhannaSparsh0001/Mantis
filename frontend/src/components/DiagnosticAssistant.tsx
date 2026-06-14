@@ -30,7 +30,7 @@ export default function DiagnosticAssistant({
   // Initialize with initial query or greeting
   useEffect(() => {
     const greetingText = `I'll help you diagnose your product issue. Let's work systematically through tests to isolate the problem. Describe what symptoms you are seeing.`;
-    
+
     const initialMsgs: Message[] = [
       {
         id: "greeting",
@@ -62,47 +62,33 @@ export default function DiagnosticAssistant({
   const triggerAiResponse = async (userText: string, currentMessages: Message[]) => {
     setIsTyping(true);
 
-    // Mock AI Tech logic based on issue keywords for robust fallback
-    setTimeout(() => {
-      let aiText = "Could you tell me if the device displays any error codes or lights when this happens?";
-      let suggestedActions = ["Check physical power switch", "Verify wall outlet works"];
-      let manualLinks = [{ name: "Powering On", page: 12 }, { name: "Troubleshooting Guide", page: 28 }];
+    try {
+      const res = await fetch("http://localhost:8000/api/diagnose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, query: userText }),
+      });
+      const data = await res.json();
 
-      const text = userText.toLowerCase();
-      if (text.includes("turn on") || text.includes("dead") || text.includes("won't start")) {
-        aiText = "Understood. A scooter that won't turn on is usually caused by a battery connection issue, a blown fuse, or a damaged power line. Let's check the charging state. When you plug in the charger, does the charger block LED light up red, green, or remain off?";
-        suggestedActions = ["Plug in charger", "Observe charger LED color", "Check charging port pins"];
-        manualLinks = [{ name: "Charging the Battery", page: 18 }, { name: "Troubleshooting Guide", page: 28 }];
-      } else if (text.includes("charging") || text.includes("charge")) {
-        aiText = "If the charger LED stays green but the scooter is empty, the BMS (Battery Management System) might be in sleep mode or the fuse F3 (10A) under the baseboard has blown. Please check if the connection between the battery terminal and controller is tight.";
-        suggestedActions = ["Inspect Fuse F3 (10A)", "Check battery-to-controller connection", "Reset BMS"];
-        manualLinks = [{ name: "BMS Protection Mode", page: 22 }, { name: "Replacing the Fuse", page: 34 }];
-      } else if (text.includes("e4") || text.includes("error")) {
-        aiText = "Error Code E4 typically indicates a communication failure between the handlebar dashboard and the main controller. This is often caused by a loose wire inside the handlebar stem. Can you unscrew the handlebar mount and verify if the 4-pin cable is clicked in tightly?";
-        suggestedActions = ["Unscrew handlebar head", "Verify 4-pin cable connection", "Inspect wires for pinches"];
-        manualLinks = [{ name: "Handlebar Wiring Diagram", page: 15 }, { name: "Error Code Definitions", page: 41 }];
-      } else if (text.includes("brake") || text.includes("stopping")) {
-        aiText = "A loose mechanical brake requires adjusting the tension cable at the caliper. Let's inspect the brake pads. Is the pad wear marker still visible, or is the metal rotor rubbing against the caliper body?";
-        suggestedActions = ["Check caliper cable tension", "Inspect brake pad wear indicator", "Align caliper bracket"];
-        manualLinks = [{ name: "Brake Caliper Alignment", page: 30 }, { name: "Replacing Brake Pads", page: 32 }];
-      }
-
-      // Update Parent UI if callback is provided
-      if (onSuggestedActionsChange) onSuggestedActionsChange(suggestedActions);
-      if (onManualLinksChange) onManualLinksChange(manualLinks);
+      if (onSuggestedActionsChange) onSuggestedActionsChange(data.suggestedActions);
+      if (onManualLinksChange) onManualLinksChange(data.manualLinks);
 
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: aiText,
+          text: data.text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
+    } catch (err) {
+      console.error("Error communicating with backend:", err);
+    } finally {
       setIsTyping(false);
-    }, 1200);
+    }
   };
+
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -142,12 +128,11 @@ export default function DiagnosticAssistant({
                 </svg>
               </div>
             )}
-            
-            <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-              msg.sender === "user"
+
+            <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${msg.sender === "user"
                 ? "bg-slate-100 text-slate-800 rounded-br-none"
                 : "bg-white border border-slate-200/80 text-slate-700 rounded-bl-none shadow-sm"
-            }`}>
+              }`}>
               <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
               <span className="mt-1 block text-right text-[10px] text-slate-400 font-semibold">
                 {msg.timestamp}

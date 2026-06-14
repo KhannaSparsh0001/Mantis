@@ -1,12 +1,13 @@
-// src/middlewares/logger.ts
+import { Elysia } from 'elysia';
 
-export const loggerMiddleware = (app: any) => {
-  return app.use({
-    before: (request: any) => {
+export const loggerMiddleware = (app: Elysia) => {
+  return app
+    .onRequest(({ request }) => {
       console.log('Incoming request:', request.method, request.url);
-    },
-    after: (response: any, request: any) => {
-      console.log('Response sent:', response?.status, request.url);
-    },
-  });
+    })
+    .onAfterResponse(({ request, set }) => {
+      const status = set.status || 200;
+      console.log('Response sent:', status, request.url);
+    });
 };
+

@@ -4,7 +4,7 @@ import { ENV } from './config/env';
 import { loggerMiddleware } from './middlewares/logger';
 import { registerRoutes } from './routes/index';
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(cors({ origin: ENV.FRONTEND_URL }))
   .use(loggerMiddleware)
   .use(registerRoutes)
