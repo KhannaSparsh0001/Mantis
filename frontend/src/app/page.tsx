@@ -287,7 +287,7 @@ export default function Home() {
           </Link>
         </div>
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {recentManuals.map((man, idx) => (
+          {recentManuals.map((man) => (
             <Link
               key={man.id}
               href={`/products/${man.id}`}

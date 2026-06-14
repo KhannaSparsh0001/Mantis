@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -15,107 +15,107 @@ interface Product {
   svgIcon: React.ReactNode;
 }
 
+const products: Product[] = [
+  {
+    id: "xiaomi-scooter-4-pro",
+    name: "Xiaomi Mi Electric Scooter 4 Pro",
+    category: "Electric Scooters",
+    type: "User Manual",
+    added: "Added 2 days ago",
+    description: "High-performance electric scooter with advanced safety features and long-range battery.",
+    svgIcon: (
+      <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="18" r="3" />
+        <path d="M6 15h11a1 1 0 001-1V5a1 1 0 00-1-1H9" />
+      </svg>
+    ),
+  },
+  {
+    id: "sony-wh1000xm5",
+    name: "Sony WH-1000XM5 Headphones",
+    category: "Audio",
+    type: "User Guide",
+    added: "Added 3 days ago",
+    description: "Premium noise-canceling wireless headphones with exceptional sound and call quality.",
+    svgIcon: (
+      <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        <path d="M3 14c0-4.97 4.03-9 9-9s9 4.03 9 9M3 14v3a2 2 0 002 2h2v-6H5a2 2 0 00-2 2zm16-1v6h2a2 2 0 002-2v-3a2 2 0 00-2-2h-2z" />
+      </svg>
+    ),
+  },
+  {
+    id: "canon-eos-r50",
+    name: "Canon EOS R50 Camera",
+    category: "Cameras",
+    type: "Reference Manual",
+    added: "Added 5 days ago",
+    description: "Compact mirrorless camera designed for content creators, featuring 4K video and high-speed AF.",
+    svgIcon: (
+      <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+        <circle cx="12" cy="13" r="3" />
+      </svg>
+    ),
+  },
+  {
+    id: "dyson-v15",
+    name: "Dyson V15 Detect Vacuum",
+    category: "Home Appliances",
+    type: "User Manual",
+    added: "Added 1 week ago",
+    description: "Intelligent cordless vacuum with laser dust detection and real-time screen reports.",
+    svgIcon: (
+      <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        <path d="M19 11V5a2 2 0 00-2-2H7a2 2 0 00-2 2v6m14 0a4 4 0 01-4 4H9a4 4 0 01-4-4m14 0v9a1 1 0 01-1 1h-2a1 1 0 01-1-1v-5a1 1 0 00-1-1H9a1 1 0 00-1 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-9" />
+      </svg>
+    ),
+  },
+  {
+    id: "ninebot-max-g2",
+    name: "Ninebot MAX G2 Scooter",
+    category: "Electric Scooters",
+    type: "User Manual",
+    added: "Added May 15, 2024",
+    description: "Premium electric kick scooter with double suspension and RideyLONG range technology.",
+    svgIcon: (
+      <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="18" r="3" />
+        <path d="M6 15h11a1 1 0 001-1V5a1 1 0 00-1-1H9" />
+      </svg>
+    ),
+  },
+  {
+    id: "dji-mini-3-pro",
+    name: "DJI Mini 3 Pro Drone",
+    category: "Accessories",
+    type: "User Manual",
+    added: "Added May 10, 2024",
+    description: "Lightweight and foldable camera drone with 4K HDR video and obstacle sensing.",
+    svgIcon: (
+      <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 10h3l-4 4-4-4h3V7h2v5z" />
+      </svg>
+    ),
+  },
+];
+
 function ProductsCatalogContent() {
   const searchParams = useSearchParams();
-  const initialCategory = searchParams.get("category") || "All";
+  const categoryQuery = searchParams.get("category");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedCategoryState, setSelectedCategoryState] = useState<string | null>(null);
+  const [prevCategoryQuery, setPrevCategoryQuery] = useState(categoryQuery);
 
-  useEffect(() => {
-    const categoryQuery = searchParams.get("category");
-    if (categoryQuery) {
-      setSelectedCategory(categoryQuery);
-    }
-  }, [searchParams]);
+  if (categoryQuery !== prevCategoryQuery) {
+    setPrevCategoryQuery(categoryQuery);
+    setSelectedCategoryState(null);
+  }
 
+  const selectedCategory = selectedCategoryState || categoryQuery || "All";
   const categories = ["All", "Electric Scooters", "Audio", "Cameras", "Home Appliances", "Accessories"];
-
-  const products: Product[] = [
-    {
-      id: "xiaomi-scooter-4-pro",
-      name: "Xiaomi Mi Electric Scooter 4 Pro",
-      category: "Electric Scooters",
-      type: "User Manual",
-      added: "Added 2 days ago",
-      description: "High-performance electric scooter with advanced safety features and long-range battery.",
-      svgIcon: (
-        <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="18" cy="18" r="3" />
-          <path d="M6 15h11a1 1 0 001-1V5a1 1 0 00-1-1H9" />
-        </svg>
-      ),
-    },
-    {
-      id: "sony-wh1000xm5",
-      name: "Sony WH-1000XM5 Headphones",
-      category: "Audio",
-      type: "User Guide",
-      added: "Added 3 days ago",
-      description: "Premium noise-canceling wireless headphones with exceptional sound and call quality.",
-      svgIcon: (
-        <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-          <path d="M3 14c0-4.97 4.03-9 9-9s9 4.03 9 9M3 14v3a2 2 0 002 2h2v-6H5a2 2 0 00-2 2zm16-1v6h2a2 2 0 002-2v-3a2 2 0 00-2-2h-2z" />
-        </svg>
-      ),
-    },
-    {
-      id: "canon-eos-r50",
-      name: "Canon EOS R50 Camera",
-      category: "Cameras",
-      type: "Reference Manual",
-      added: "Added 5 days ago",
-      description: "Compact mirrorless camera designed for content creators, featuring 4K video and high-speed AF.",
-      svgIcon: (
-        <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-          <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-          <circle cx="12" cy="13" r="3" />
-        </svg>
-      ),
-    },
-    {
-      id: "dyson-v15",
-      name: "Dyson V15 Detect Vacuum",
-      category: "Home Appliances",
-      type: "User Manual",
-      added: "Added 1 week ago",
-      description: "Intelligent cordless vacuum with laser dust detection and real-time screen reports.",
-      svgIcon: (
-        <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-          <path d="M19 11V5a2 2 0 00-2-2H7a2 2 0 00-2 2v6m14 0a4 4 0 01-4 4H9a4 4 0 01-4-4m14 0v9a1 1 0 01-1 1h-2a1 1 0 01-1-1v-5a1 1 0 00-1-1H9a1 1 0 00-1 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-9" />
-        </svg>
-      ),
-    },
-    {
-      id: "ninebot-max-g2",
-      name: "Ninebot MAX G2 Scooter",
-      category: "Electric Scooters",
-      type: "User Manual",
-      added: "Added May 15, 2024",
-      description: "Premium electric kick scooter with double suspension and RideyLONG range technology.",
-      svgIcon: (
-        <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="18" cy="18" r="3" />
-          <path d="M6 15h11a1 1 0 001-1V5a1 1 0 00-1-1H9" />
-        </svg>
-      ),
-    },
-    {
-      id: "dji-mini-3-pro",
-      name: "DJI Mini 3 Pro Drone",
-      category: "Accessories",
-      type: "User Manual",
-      added: "Added May 10, 2024",
-      description: "Lightweight and foldable camera drone with 4K HDR video and obstacle sensing.",
-      svgIcon: (
-        <svg className="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 10h3l-4 4-4-4h3V7h2v5z" />
-        </svg>
-      ),
-    },
-  ];
 
   // Filtering Logic
   const filteredProducts = useMemo(() => {
@@ -161,7 +161,7 @@ function ProductsCatalogContent() {
         {categories.map((cat) => (
           <button
             key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => setSelectedCategoryState(cat)}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition-all cursor-pointer ${
               selectedCategory === cat
                 ? "bg-mantis-green text-white shadow-sm"

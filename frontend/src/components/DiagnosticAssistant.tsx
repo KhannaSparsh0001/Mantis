@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 interface Message {
   id: string;
@@ -22,15 +22,8 @@ export default function DiagnosticAssistant({
   onSuggestedActionsChange,
   onManualLinksChange,
 }: DiagnosticAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Initialize with initial query or greeting
-  useEffect(() => {
+  const [messages, setMessages] = useState<Message[]>(() => {
     const greetingText = `I'll help you diagnose your product issue. Let's work systematically through tests to isolate the problem. Describe what symptoms you are seeing.`;
-
     const initialMsgs: Message[] = [
       {
         id: "greeting",
@@ -47,19 +40,15 @@ export default function DiagnosticAssistant({
         text: initialQuery,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
-      setMessages(initialMsgs);
-      triggerAiResponse(initialQuery, initialMsgs);
-    } else {
-      setMessages(initialMsgs);
     }
-  }, [productId, initialQuery]);
 
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+    return initialMsgs;
+  });
+  const [inputValue, setInputValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const triggerAiResponse = async (userText: string, currentMessages: Message[]) => {
+  const triggerAiResponse = useCallback(async (userText: string) => {
     setIsTyping(true);
 
     try {
@@ -87,7 +76,21 @@ export default function DiagnosticAssistant({
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [productId, onSuggestedActionsChange, onManualLinksChange]);
+
+  // Trigger AI response on mount if initialQuery is set
+  useEffect(() => {
+    if (initialQuery) {
+      requestAnimationFrame(() => {
+        triggerAiResponse(initialQuery);
+      });
+    }
+  }, [initialQuery, triggerAiResponse]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
 
   const handleSend = () => {
@@ -103,7 +106,7 @@ export default function DiagnosticAssistant({
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputValue("");
-    triggerAiResponse(userMessage.text, updatedMessages);
+    triggerAiResponse(userMessage.text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

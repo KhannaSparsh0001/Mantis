@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Link from "next/link";
+
 
 interface SidebarItem {
   name: string;
@@ -119,9 +119,10 @@ export default function DashboardPage() {
         },
         ...prev,
       ]);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Upload error:", err);
-      setUploadStatus(`❌ Failed: ${err.message || err}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`❌ Failed: ${errMsg}`);
     } finally {
       setUploading(false);
       // Reset the file input value

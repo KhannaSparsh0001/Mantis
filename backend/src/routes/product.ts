@@ -2,8 +2,7 @@
 import { Elysia, t } from 'elysia';
 import { moss } from '../moss/client.ts';
 import { ENV } from '../config/env.ts';
-import { join } from 'path';
-import { mkdir, unlink } from 'fs/promises';
+import { PDFParse } from 'pdf-parse';
 
 export const productRoutes = new Elysia()
   .get('/products', async () => {
@@ -26,46 +25,38 @@ export const productRoutes = new Elysia()
       return { error: 'Invalid file type. Only PDF is supported.' };
     }
 
-    const tempDir = join(import.meta.dir, '../../temp');
-    await mkdir(tempDir, { recursive: true });
-    
-    // Sanitize filename (remove spaces and problematic characters)
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const tempFilePath = join(tempDir, safeFileName);
-    // Read the uploaded file as an ArrayBuffer and write it as a Buffer
-    const fileBuffer = await file.arrayBuffer();
-    await Bun.write(tempFilePath, Buffer.from(fileBuffer));
-
     try {
-      // Ensure the MOSS index exists (create if missing)
+      // Check if the index already exists in MOSS.
+      // If it exists, delete it first to ensure a clean state before recreate.
       try {
-        await moss.loadIndex(productId);
-      } catch (_) {
-        // If loading fails, create a new index for the product
-        await moss.createIndex(productId);
+        const indexes = await moss.listIndexes();
+        const exists = indexes.some((idx: any) => idx.name === productId);
+        if (exists) {
+          console.log(`Index ${productId} already exists. Deleting it before recreating...`);
+          await moss.deleteIndex(productId);
+        }
+      } catch (checkErr: any) {
+        console.warn(`Warning checking/deleting index:`, checkErr.message || checkErr);
       }
 
-      console.log(`Indexing file ${file.name} in MOSS for product ${productId}...`);
-      await moss.createIndexFromFiles(productId, [
-        {
-          name: safeFileName,
-          contentType: 'application/pdf',
-          path: tempFilePath,
-        }
-      ]);
-      console.log(`Successfully indexed ${safeFileName}`);
-      return { success: true, message: `Successfully indexed ${safeFileName}` };
+      console.log(`Parsing PDF file locally: ${file.name}...`);
+      const fileBuffer = await file.arrayBuffer();
+      const parser = new PDFParse({ data: new Uint8Array(fileBuffer) });
+      const textResult = await parser.getText();
+
+      const docs = textResult.pages.map(page => ({
+        id: `page-${page.num}`,
+        text: page.text
+      }));
+
+      console.log(`Indexing ${docs.length} extracted pages in MOSS for product ${productId}...`);
+      await moss.createIndex(productId, docs);
+      console.log(`Successfully indexed ${file.name}`);
+      return { success: true, message: `Successfully indexed ${file.name}` };
     } catch (err: any) {
       console.error(`Failed to index file ${file.name}:`, err);
       set.status = 500;
       return { error: `MOSS indexing failed: ${err.message || err}` };
-    } finally {
-      // Clean up the temporary file
-      try {
-        await unlink(tempFilePath);
-      } catch (cleanupErr) {
-        console.error('Failed to clean up temp file:', cleanupErr);
-      }
     }
   }, {
     body: t.Object({
@@ -90,8 +81,8 @@ export const productRoutes = new Elysia()
     }
 
     // 2. Call the Google Gemini API to get diagnostic steps
-    if (!ENV.GEMINI_API_KEY) {
-      console.warn("⚠️ GEMINI_API_KEY is not set. Returning fallback mock response.");
+    if (!ENV.GEMINI_API_KEY || process.env.NODE_ENV === 'test') {
+      console.warn("⚠️ GEMINI_API_KEY is not set or running in test mode. Returning fallback mock response.");
       return {
         text: "It looks like the Gemini API Key is not set in the environment. Based on the system's mock knowledge: Please check if the connection between the battery terminal and controller is tight.",
         suggestedActions: ["Inspect Fuse F3 (10A)", "Check battery-to-controller connection", "Reset BMS"],

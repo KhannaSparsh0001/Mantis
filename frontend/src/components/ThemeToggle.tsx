@@ -7,12 +7,14 @@ export default function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const storedTheme = localStorage.getItem("theme");
-    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    if (storedTheme === "dark" || (!storedTheme && systemDark)) {
-      setTheme("dark");
-    }
+    requestAnimationFrame(() => {
+      setMounted(true);
+      const storedTheme = localStorage.getItem("theme");
+      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (storedTheme === "dark" || (!storedTheme && systemDark)) {
+        setTheme("dark");
+      }
+    });
   }, []);
 
   const toggleTheme = () => {
