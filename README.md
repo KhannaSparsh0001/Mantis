@@ -1,20 +1,49 @@
+# Team: Tech Nerds
+
+- Sparsh Khanna
+- Sahil Gupta
+- Gourish Julka
+- Meharwan Singh
+
 # Mantis — AI-Powered Support for Every Product You Own
 
 Mantis is a full-stack AI diagnostics platform. Upload a product manual (PDF), and Mantis indexes it in real‑time for semantic search, then lets you diagnose problems through an AI chat assistant that references your specific product documentation.
 
+## 🚀 Features and Functionality
+
+### 1. Product Marketplace & Search
+* **Browsable Catalog:** An aesthetic, user-facing catalog listing all registered products on the platform.
+* **Global Real-Time Search:** A search input built into the navigation header that filters the catalog instantly based on product names, descriptions, or tags.
+* **Product Detail Pages:** A dedicated landing page for each product showing full specifications, download options for official manuals, and associated resources.
+
+### 2. Live PDF Parsing & Semantic Indexing
+* **Instant PDF Parsing:** When a manual is uploaded, the backend automatically extracts text page-by-page.
+* **Context-Aware Chunker:** Segments raw text into ~300-token blocks with a 50-token overlap to prevent data loss across page boundaries.
+* **Shared Index Vector Search:** Pushes chunks into a shared MOSS index utilizing metadata filters `{ productId }` to optimize indexing efficiency.
+* **Multi-Media Resource Attachments:** Ability for company members to link and manage images, video guides, and support links alongside the PDF manuals.
+
+### 3. Intelligent Diagnostic Engine
+* **Interactive Diagnostic Assistant:** A chat assistant that acts like a support technician, walking users through systematic elimination steps rather than dumping documentation text.
+* **Hybrid Search Retrieval:** Combines keyword and vector search (Alpha: 0.5) to capture both technical product terminology (like error codes or SKU part numbers) and natural language user symptoms.
+* **Dynamic Reference Sidebar:** Renders exact manual page references, checklists, and recommended actions dynamically in the UI based on structured AI JSON responses.
+
+### 4. Persistence & Session Management
+* **Database-Backed Chats:** Conversation threads are saved in Supabase (Postgres) so users can retrieve their troubleshooting history later.
+* **Dynamic Routing:** Auto-initiates new diagnostic sessions tied directly to selected products when navigating from a product card.
+
+### 5. Multi-Tenant Role-Based Access Control (RBAC)
+* **Superadmin:** Global administrative control to manage registered companies, assign permissions, and oversee product listings.
+* **Company Admin / Member:** Ability to register products, upload manuals, manage company members, and append supplementary assets.
+* **Standard User / Anonymous Guest:** Permission to browse products and troubleshoot issues with the AI diagnostic assistant.
+
+### 6. Design System & Aesthetics
+* **Theme Toggle:** Fully supported global dark and light mode theme switcher.
+* **Modern Typography & Layouts:** Sleek layout using `Plus Jakarta Sans` for headers, `Manrope` for readability, HSL-tailored colors, and smooth CSS transitions.
+
+
 ## Architecture
 
-```
-┌──────────────┐       ┌──────────────┐       ┌───────────┐       ┌──────────────┐
-│   Frontend   │──────▶│   Backend    │──────▶│  Supabase │       │    MOSS      │
-│  Next.js 16  │◀──────│  Elysia/Bun  │◀──────│  (Postgres │       │  (Semantic   │
-│  :3000       │  REST │  :8000       │  Auth  │  + Storage)│       │   Search)    │
-└──────────────┘       └──────┬───────┘       └───────────┘       └──────┬───────┘
-                              │                                          │
-                              │◀──── OpenCode (AI Diagnostics) ─────────▶│
-                              └──────────────────────────────────────────┘
-                              │◀──── MOSS (Semantic Search) ─────────────┘
-```
+![arch diagram](arch_d.png)
 
 - **Backend** (Elysia on Bun) handles API routes, file storage, authentication, and orchestrates MOSS + OpenCode
 - **Frontend** (Next.js 16) provides the dashboard, product catalog, diagnostics chat, and company management
@@ -358,6 +387,62 @@ for (const idx of oldProductIndexes) {
   await client.deleteIndex(idx.name);
 }
 ```
+
+## 📖 Usage Guide
+
+This guide details how to navigate and use the Mantis platform as a **Customer / End-User** and as a **Company Administrator**.
+
+---
+
+### 🛍️ 1. The Customer Journey (Troubleshooting a Product)
+
+#### Step A: Browse & Search the Marketplace
+1. Navigate to the **Products** page (`/products`).
+2. Use the search bar at the top to filter products by title, tags, or description.
+3. Click on any product card (e.g., *Electric Scooter*) to view its details. Here you will find its description, manufacturer, and uploaded resources (manuals, videos, links).
+
+#### Step B: Launch the AI Diagnostic Assistant
+1. Click the **Diagnose** button on the product details page, or navigate directly to `/diagnostics`.
+2. A persistent conversation will be automatically initialized for you, titled *"Diagnosing: [Product Name]"*.
+3. Type in the issue you are experiencing (e.g., *"My scooter horn is silent"* or *"The engine light is blinking red"*).
+
+#### Step C: Follow the Troubleshooting Guidance
+1. **Systematic Elimination:** The AI Assistant behaves like a technician—it won't just dump manual text. It will query the manuals, read the context, and ask you specific follow-up questions to isolate variables.
+2. **Follow Instructions:** Provide answers to the assistant's questions (e.g., *"The headlight works, but the display is off"*).
+3. **Inspect Interactive References:**
+   * Look at the **Right Sidebar** to see the suggested action checklist and raw source excerpts pulled from the manufacturer's manual.
+   * Verify the suggestions using the page references provided by the engine.
+
+---
+
+### 🏢 2. The Company/Admin Journey (Managing Products & Knowledge)
+
+To upload manuals and manage products, you must log in as a Company or System Administrator.
+
+#### Step A: Log In with Seeded Accounts
+1. Go to the login page (`/login`).
+2. Enter one of the seeded credentials:
+
+| Account Role | Email Address | Password | Permissions |
+| :--- | :--- | :--- | :--- |
+| **Superadmin** | `admin@mantis.demo` | `admin123456` | Manage all companies, add/delete any product, full database control. |
+| **Company Admin** | `company@mantis.demo` | `company123456` | Manage products and upload manuals for "Demo Outdoors Co." |
+
+#### Step B: Add a Product & Upload a Manual
+1. Once logged in, navigate to the **Dashboard** (`/dashboard`).
+2. Click **Create Product** and fill in the details: Title, Description, Tags, and Product Image.
+3. Once the product is created, click **Upload Manual** on the product card.
+4. Select a product manual PDF and click upload.
+   * **Under the Hood:** The backend will upload the PDF to Supabase Storage, parse the text per page, chunk it into ~300-token blocks, and index those chunks with metadata directly into the shared MOSS `"manuals"` vector search index.
+
+#### Step C: Manage Supplementary Resources
+1. From the product detail page, administrators can link supplementary resources such as:
+   * Video walkthroughs (e.g., YouTube tutorial links).
+   * External web links (e.g., spare parts ordering pages).
+   * Safe-handling document attachments.
+2. These resources will instantly populate the user-facing product page.
+
+#### DEMO LINK: https://drive.google.com/drive/folders/189KN0ODrj5B4HDyIrBlerC_lo1esiaGo
 
 ## Upgrading from Previous Versions
 
