@@ -4,17 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
+  const { user, isLoading, signOut } = useAuth();
 
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Products", href: "/products" },
     { name: "Diagnostics", href: "/diagnostics" },
-    { name: "Dashboard", href: "/dashboard" },
   ];
+
+  if (user) {
+    navLinks.push({ name: "Dashboard", href: "/dashboard" });
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm transition-colors duration-300">
@@ -134,13 +139,35 @@ export default function Navbar() {
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
           </button>
 
-          {/* Profile Picture */}
-          <button className="flex rounded-full bg-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-mantis-green focus:ring-offset-2">
-            <span className="sr-only">Open user menu</span>
-            <div className="h-8 w-8 rounded-full bg-mantis-green flex items-center justify-center text-white font-semibold shadow-sm">
-              KS
+          {/* Profile / Auth */}
+          {isLoading ? (
+            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          ) : user ? (
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="hidden sm:block text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+              >
+                {user.email}
+              </Link>
+              <button
+                onClick={signOut}
+                className="rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Logout
+              </button>
+              <div className="h-8 w-8 rounded-full bg-mantis-green flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                {user.email?.charAt(0).toUpperCase() || "U"}
+              </div>
             </div>
-          </button>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg bg-mantis-green px-4 py-1.5 text-xs font-semibold text-white hover:bg-mantis-green-dark transition-colors shadow-sm"
+            >
+              Login
+            </Link>
+          )}
         </div>
       </div>
     </header>

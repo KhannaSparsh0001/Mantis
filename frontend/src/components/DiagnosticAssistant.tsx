@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -14,6 +15,7 @@ interface DiagnosticAssistantProps {
   initialQuery?: string;
   onSuggestedActionsChange?: (actions: string[]) => void;
   onManualLinksChange?: (links: { name: string; page: number }[]) => void;
+  onFirstMessage?: (text: string) => void;
 }
 
 export default function DiagnosticAssistant({
@@ -21,6 +23,7 @@ export default function DiagnosticAssistant({
   initialQuery = "",
   onSuggestedActionsChange,
   onManualLinksChange,
+  onFirstMessage,
 }: DiagnosticAssistantProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
     const greetingText = `I'll help you diagnose your product issue. Let's work systematically through tests to isolate the problem. Describe what symptoms you are seeing.`;
@@ -47,14 +50,19 @@ export default function DiagnosticAssistant({
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasSentFirstMessage = useRef(false);
+  const { getAccessToken } = useAuth();
 
   const triggerAiResponse = useCallback(async (userText: string) => {
     setIsTyping(true);
 
     try {
+      const token = await getAccessToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch("http://localhost:8000/api/diagnose", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ productId, query: userText }),
       });
       const data = await res.json();
@@ -81,11 +89,15 @@ export default function DiagnosticAssistant({
   // Trigger AI response on mount if initialQuery is set
   useEffect(() => {
     if (initialQuery) {
+      if (!hasSentFirstMessage.current && onFirstMessage) {
+        hasSentFirstMessage.current = true;
+        onFirstMessage(initialQuery);
+      }
       requestAnimationFrame(() => {
         triggerAiResponse(initialQuery);
       });
     }
-  }, [initialQuery, triggerAiResponse]);
+  }, [initialQuery, triggerAiResponse, onFirstMessage]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -95,6 +107,11 @@ export default function DiagnosticAssistant({
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
+
+    if (!hasSentFirstMessage.current && onFirstMessage) {
+      hasSentFirstMessage.current = true;
+      onFirstMessage(inputValue);
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
